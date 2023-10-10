@@ -1,0 +1,58 @@
+- name: install nginx
+  include_tasks: '{{ ansible_os_family | lower }}.yml'
+
+- name: start nginx service
+  systemd:
+    name: nginx
+    state: started
+
+- name: create nginx config
+  ansible.builtin.template:
+    src: "{{ web.server.template }}"
+    dest: /etc/nginx/nginx.conf
+    owner: "{{ nginx_user }}"
+    group: "{{ nginx_user }}"
+    mode: '0755'
+  notify: reload nginx service
+
+- name: clear vh directories
+  ansible.builtin.file:
+    path: "/etc/nginx/{{ item[1] }}"
+    state: "{{ item[0] }}"
+  loop: "{{ ['absent', 'directory'] | product(['sites-enabled', 'sites-available']) | list }}"
+  notify: reload nginx service
+
+- name: create sites configs files
+  ansible.builtin.template:
+    src: "{{ item.template  }}"
+    dest: "/etc/nginx/sites-available/{{ item.config.server_name }}.conf"
+    owner: "{{ nginx_user  }}"
+    group: "{{ nginx_user  }}"
+    mode: '0755'
+  loop: "{{ web.sites }}"
+  notify: reload nginx service
+
+- name: create symlinks
+  ansible.builtin.file:
+    src: "/etc/nginx/sites-available/{{ item.config.server_name }}.conf"
+    dest: "/etc/nginx/sites-enabled/{{ item.config.server_name }}.conf"
+    state: link
+  loop: "{{ web.sites }}"
+  notify: reload nginx service
+
+- name: create dir for content
+  ansible.builtin.file:
+    path: "{{ item.config.root }}"
+    state: directory
+    mode: '0755'
+    owner: "{{ nginx_user }}"
+  loop: "{{ web.sites }}"
+
+- name: create content files
+  ansible.builtin.template:
+    src: "{{ item.1.template }}"
+    dest: "{{ item.0.config.root }}/{{ item.1.destination }}"
+    owner: "{{ nginx_user  }}"
+    group: "{{ nginx_user  }}"
+    mode: '0755'
+  loop: "{{ web.sites | subelements('content', skip_missing=True) }}"

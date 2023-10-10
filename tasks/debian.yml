@@ -1,0 +1,12 @@
+- name: install nginx on ubuntu
+  apt:
+    name: nginx
+    update_cache: true
+  register: nginx_install_result
+  retries: 5
+  until: nginx_install_result is success
+
+- name: set user and content dir of lnx distrib
+  set_fact:
+    content_dir: /var/www
+    nginx_user: www-data

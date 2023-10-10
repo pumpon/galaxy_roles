@@ -1,0 +1,33 @@
+web:
+  server:
+    template: nginx.conf.j2
+    config:
+      user: www-data
+      events:
+        worker_connections: 768
+      http:
+        access_log: /var/log/nginx/access.log
+        error_log: /var/log/nginx/error.log
+        sendfile: "on"
+        tcp_nodelay: "on"
+        tcp_nopush: "on"
+        types_hash_max_size: 2048
+        server_names_hash_bucket_size: 128
+  sites:
+    - template: vh.conf.j2
+      config: &default_vh_config
+        server_name: "{{ fqdn }}"
+        listen: 80 default_server
+        root: "{{ content_dir  }}/html1"
+        index:
+          - index.html
+      content: &default_vh_content
+        - destination:  index.html
+          template: index.html.j2
+#    - template: vh.conf.j2
+#      config:
+#        <<: *default_vh_config
+#        server_name: "{{ ansible_host }}.nip.io"
+#        listen: 80
+#        root: "{{ content_dir }}/html2"
+#      content: *default_vh_content

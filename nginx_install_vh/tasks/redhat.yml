@@ -1,0 +1,12 @@
+- name: install nginx on centos
+  dnf:
+    name: nginx
+    state: present
+  register: nginx_install_result
+  retries: 5
+  until: nginx_install_result is success
+
+- name: set content dir of lnx distrib
+  set_fact:
+    content_dir: /usr/share
+    nginx_user: nginx
